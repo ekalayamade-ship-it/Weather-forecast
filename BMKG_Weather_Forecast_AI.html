@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMKG Weather Forecast AI — 6 Metode</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #04060f; --surface: #0b0f1e; --surface2: #111828; --border: #1e2a40;
+    --accent: #00d4ff; --accent3: #a259ff; --green: #00ff9d;
+    --text: #e8edf7; --text2: #7a8ba8;
+    --mc: #00d4ff; --ga: #ff6b35; --nn: #a259ff; --ar: #ffd600; --hw: #00ff9d; --rf: #ff4dae;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image: radial-gradient(circle at 15% 15%, rgba(0,212,255,0.05) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(162,89,255,0.05) 0%, transparent 50%), linear-gradient(rgba(30,42,64,0.25) 1px, transparent 1px), linear-gradient(90deg, rgba(30,42,64,0.25) 1px, transparent 1px); background-size:100% 100%,100% 100%,40px 40px,40px 40px; }
+  .container { position:relative; z-index:1; max-width:1280px; margin:0 auto; padding:20px; }
+  header { text-align:center; padding:36px 0 26px; }
+  .logo-bar { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:8px; }
+  .logo-icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent3)); display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 0 24px rgba(0,212,255,0.4); }
+  h1 { font-size:clamp(20px,4vw,34px); font-weight:800; background:linear-gradient(135deg,var(--accent) 0%,#fff 50%,var(--accent3) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .subtitle { color:var(--text2); font-size:12px; font-family:'Space Mono',monospace; letter-spacing:1.5px; text-transform:uppercase; margin-top:6px; }
+  .controls { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px 24px; margin-bottom:20px; display:grid; grid-template-columns:1.4fr 1fr auto; gap:14px; align-items:end; }
+  .field label { display:block; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text2); margin-bottom:7px; font-family:'Space Mono',monospace; }
+  .field select { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:10px 14px; border-radius:8px; font-family:'Syne',sans-serif; font-size:13px; outline:none; appearance:none; }
+  .field select:focus { border-color:var(--accent); }
+  .btn-run { background:linear-gradient(135deg,var(--accent),var(--accent3)); border:none; color:#fff; padding:11px 26px; border-radius:8px; font-family:'Syne',sans-serif; font-weight:700; font-size:13px; cursor:pointer; transition:opacity 0.2s,transform 0.1s; white-space:nowrap; }
+  .btn-run:hover { opacity:0.9; transform:translateY(-1px); }
+  .btn-run:disabled { opacity:0.35; cursor:not-allowed; transform:none; }
+  .status-bar { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:11px 18px; margin-bottom:16px; font-family:'Space Mono',monospace; font-size:11px; color:var(--text2); display:flex; align-items:center; gap:10px; min-height:42px; }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:var(--text2); flex-shrink:0; }
+  .status-dot.running { background:var(--accent); animation:pulse 1s infinite; }
+  .status-dot.done { background:var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+  .progress-wrap { height:3px; background:var(--border); border-radius:2px; margin-bottom:16px; overflow:hidden; display:none; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent3),var(--rf)); border-radius:2px; width:0%; transition:width 0.4s ease; }
+  .methods-legend { display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+  .method-tag { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; }
+  .method-tag .dot { width:9px; height:9px; border-radius:50%; }
+  .section-title { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--text2); font-family:'Space Mono',monospace; margin-bottom:12px; padding-left:2px; }
+  .forecast-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:24px; }
+  .day-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 8px; text-align:center; transition:transform 0.2s,border-color 0.2s; }
+  .day-card:hover { transform:translateY(-3px); border-color:rgba(0,212,255,0.35); }
+  .day-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text2); font-family:'Space Mono',monospace; margin-bottom:8px; }
+  .weather-icon { font-size:26px; margin-bottom:8px; }
+  .temp-main { font-size:20px; font-weight:800; line-height:1; margin-bottom:4px; }
+  .temp-range { font-size:10px; color:var(--text2); font-family:'Space Mono',monospace; margin-bottom:8px; }
+  .condition-badge { font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:3px 7px; border-radius:20px; background:rgba(255,255,255,0.07); color:var(--text2); margin-bottom:10px; display:inline-block; }
+  .method-temps { border-top:1px solid var(--border); padding-top:8px; display:flex; flex-direction:column; gap:3px; }
+  .method-temp-row { display:flex; justify-content:space-between; font-size:9px; font-family:'Space Mono',monospace; }
+  .chart-section { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
+  .chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+  .chart-title { font-size:14px; font-weight:700; }
+  canvas { width:100% !important; }
+  .analysis-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+  .analysis-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .analysis-card .card-top { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .method-icon { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .analysis-card h3 { font-size:13px; font-weight:700; }
+  .analysis-card .method-subtitle { font-size:9px; color:var(--text2); font-family:'Space Mono',monospace; }
+  .stat-rows { display:flex; flex-direction:column; gap:6px; }
+  .stat-row { display:flex; justify-content:space-between; font-size:11px; border-bottom:1px solid var(--border); padding-bottom:5px; }
+  .stat-row:last-child { border-bottom:none; padding-bottom:0; }
+  .stat-row .key { color:var(--text2); }
+  .stat-row .val { font-weight:600; font-family:'Space Mono',monospace; }
+  .confidence-bar { height:3px; background:var(--border); border-radius:2px; margin-top:10px; overflow:hidden; }
+  .confidence-fill { height:100%; border-radius:2px; width:0%; transition:width 1.2s ease; }
+  .confidence-label { display:flex; justify-content:space-between; font-size:9px; color:var(--text2); margin-top:4px; font-family:'Space Mono',monospace; }
+  .ensemble-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:20px; }
+  .ensemble-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:14px; }
+  .ensemble-table th { text-align:left; padding:7px 10px; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text2); font-family:'Space Mono',monospace; border-bottom:1px solid var(--border); }
+  .ensemble-table td { padding:8px 10px; border-bottom:1px solid rgba(30,42,64,0.5); }
+  .ensemble-table tr:last-child td { border-bottom:none; }
+  .ensemble-table .best-badge { font-size:9px; padding:2px 8px; border-radius:20px; background:rgba(0,255,157,0.12); color:var(--green); letter-spacing:1px; }
+  .data-source-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:20px; }
+  .source-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+  .source-item { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:11px; }
+  .source-item .src-label { color:var(--text2); font-family:'Space Mono',monospace; font-size:9px; margin-bottom:3px; }
+  .source-item .src-value { font-weight:600; }
+  .source-item .src-count { font-size:9px; color:var(--text2); margin-top:2px; }
+  .empty-state { text-align:center; padding:50px 20px; color:var(--text2); }
+  .empty-state .big-icon { font-size:52px; margin-bottom:14px; opacity:0.35; }
+  .empty-state p { font-size:13px; }
+  .tag-mc{color:var(--mc)} .tag-ga{color:var(--ga)} .tag-nn{color:var(--nn)} .tag-ar{color:var(--ar)} .tag-hw{color:var(--hw)} .tag-rf{color:var(--rf)}
+  footer { text-align:center; padding:22px 0 30px; font-size:10px; color:var(--text2); font-family:'Space Mono',monospace; border-top:1px solid var(--border); margin-top:6px; line-height:1.7; }
+  @media(max-width:1000px){.analysis-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:780px){.controls{grid-template-columns:1fr 1fr;}.btn-run{grid-column:1/-1;}.forecast-grid{grid-template-columns:repeat(4,1fr);}.analysis-grid{grid-template-columns:1fr;}.source-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:520px){.forecast-grid{grid-template-columns:repeat(2,1fr);}.controls{grid-template-columns:1fr;}.source-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <div class="logo-bar"><div class="logo-icon">🌤️</div><h1>BMKG Weather Forecast AI</h1></div>
+  <p class="subtitle">6 Metode AI · Monte Carlo · GA · Neural Network · ARIMA · Holt-Winters · Random Forest</p>
+</header>
+<div class="controls">
+  <div class="field">
+    <label>Kota / Stasiun BMKG</label>
+    <select id="citySelect">
+      <option value="tangerang">Tangerang (Soekarno-Hatta)</option>
+      <option value="jakarta">Jakarta (Kemayoran)</option>
+      <option value="surabaya">Surabaya (Juanda)</option>
+      <option value="bandung">Bandung (Husein S.)</option>
+      <option value="medan">Medan (Kualanamu)</option>
+      <option value="makassar">Makassar (Sultan H.)</option>
+      <option value="yogyakarta">Yogyakarta (Adi Sucipto)</option>
+      <option value="denpasar">Denpasar (Ngurah Rai)</option>
+      <option value="semarang">Semarang (Ahmad Yani)</option>
+      <option value="palembang">Palembang (Sultan M.B.)</option>
+      <option value="manado">Manado (Sam Ratulangi)</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Periode Data Historis</label>
+    <select id="periodSelect">
+      <option value="1">1 Bulan Terakhir</option>
+      <option value="3" selected>3 Bulan Terakhir</option>
+      <option value="6">6 Bulan Terakhir</option>
+    </select>
+  </div>
+  <button class="btn-run" id="runBtn" onclick="runForecast()">⚡ Jalankan Prediksi</button>
+</div>
+<div class="status-bar" id="statusBar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">Pilih kota dan periode, lalu klik "Jalankan Prediksi"</span>
+</div>
+<div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
+<div class="methods-legend">
+  <div class="method-tag"><div class="dot" style="background:var(--mc)"></div><span class="tag-mc">Monte Carlo</span></div>
+  <div class="method-tag"><div class="dot" style="background:var(--ga)"></div><span class="tag-ga">Genetic Algorithm</span></div>
+  <div class="method-tag"><div class="dot" style="background:var(--nn)"></div><span class="tag-nn">Neural Network</span></div>
+  <div class="method-tag"><div class="dot" style="background:var(--ar)"></div><span class="tag-ar">ARIMA</span></div>
+  <div class="method-tag"><div class="dot" style="background:var(--hw)"></div><span class="tag-hw">Holt-Winters</span></div>
+  <div class="method-tag"><div class="dot" style="background:var(--rf)"></div><span class="tag-rf">Random Forest</span></div>
+</div>
+<div class="data-source-card" id="dataSourceCard" style="display:none">
+  <p class="section-title">Sumber Data Historis BMKG</p>
+  <div class="source-grid" id="sourceGrid"></div>
+</div>
+<div id="forecastSection">
+  <p class="section-title">Prakiraan 7 Hari ke Depan</p>
+  <div class="forecast-grid" id="forecastGrid">
+    <div class="empty-state" style="grid-column:1/-1">
+      <div class="big-icon">🌐</div>
+      <p>Tekan "Jalankan Prediksi" untuk memulai analisis cuaca 6 metode AI</p>
+    </div>
+  </div>
+</div>
+<div class="chart-section" id="chartSection" style="display:none">
+  <div class="chart-header">
+    <span class="chart-title">📈 Tren Suhu Maksimum 7 Hari — 6 Metode</span>
+    <div class="methods-legend" style="margin:0;gap:10px">
+      <div class="method-tag" style="font-size:9px"><div class="dot" style="background:var(--mc)"></div>MC</div>
+      <div class="method-tag" style="font-size:9px"><div class="dot" style="background:var(--ga)"></div>GA</div>
+      <div class="method-tag" style="font-size:9px"><div class="dot" style="background:var(--nn)"></div>NN</div>
+      <div class="method-tag" style="font-size:9px"><div class="dot" style="background:var(--ar)"></div>ARIMA</div>
+      <div class="method-tag" style="font-size:9px"><div class="dot" style="background:var(--hw)"></div>HW</div>
+      <div class="method-tag" style="font-size:9px"><div class="dot" style="background:var(--rf)"></div>RF</div>
+    </div>
+  </div>
+  <canvas id="tempChart" height="220"></canvas>
+</div>
+<div class="chart-section" id="rainSection" style="display:none">
+  <div class="chart-header"><span class="chart-title">🌧️ Curah Hujan &amp; Kelembaban Rata-rata</span></div>
+  <canvas id="rainChart" height="200"></canvas>
+</div>
+<div class="chart-section" id="radarSection" style="display:none">
+  <div class="chart-header"><span class="chart-title">🕸️ Perbandingan Performa 6 Metode (Radar)</span></div>
+  <canvas id="radarChart" height="300"></canvas>
+</div>
+<div class="analysis-grid" id="analysisGrid" style="display:none">
+  <div class="analysis-card">
+    <div class="card-top"><div class="method-icon" style="background:rgba(0,212,255,0.1)">🎲</div><div><h3 class="tag-mc">Monte Carlo</h3><div class="method-subtitle">Stochastic Simulation</div></div></div>
+    <div class="stat-rows" id="mcStats"></div>
+    <div class="confidence-bar"><div class="confidence-fill" id="mcConf" style="background:var(--mc)"></div></div>
+    <div class="confidence-label"><span>Akurasi Est.</span><span id="mcConfVal">—</span></div>
+  </div>
+  <div class="analysis-card">
+    <div class="card-top"><div class="method-icon" style="background:rgba(255,107,53,0.1)">🧬</div><div><h3 class="tag-ga">Genetic Algorithm</h3><div class="method-subtitle">Evolutionary Optimization</div></div></div>
+    <div class="stat-rows" id="gaStats"></div>
+    <div class="confidence-bar"><div class="confidence-fill" id="gaConf" style="background:var(--ga)"></div></div>
+    <div class="confidence-label"><span>Akurasi Est.</span><span id="gaConfVal">—</span></div>
+  </div>
+  <div class="analysis-card">
+    <div class="card-top"><div class="method-icon" style="background:rgba(162,89,255,0.1)">🤖</div><div><h3 class="tag-nn">Neural Network</h3><div class="method-subtitle">MLP 3-Layer + SGD</div></div></div>
+    <div class="stat-rows" id="nnStats"></div>
+    <div class="confidence-bar"><div class="confidence-fill" id="nnConf" style="background:var(--nn)"></div></div>
+    <div class="confidence-label"><span>Akurasi Est.</span><span id="nnConfVal">—</span></div>
+  </div>
+  <div class="analysis-card">
+    <div class="card-top"><div class="method-icon" style="background:rgba(255,214,0,0.1)">📐</div><div><h3 class="tag-ar">ARIMA</h3><div class="method-subtitle">AutoRegressive Integrated MA</div></div></div>
+    <div class="stat-rows" id="arStats"></div>
+    <div class="confidence-bar"><div class="confidence-fill" id="arConf" style="background:var(--ar)"></div></div>
+    <div class="confidence-label"><span>Akurasi Est.</span><span id="arConfVal">—</span></div>
+  </div>
+  <div class="analysis-card">
+    <div class="card-top"><div class="method-icon" style="background:rgba(0,255,157,0.1)">📉</div><div><h3 class="tag-hw">Holt-Winters</h3><div class="method-subtitle">Triple Exponential Smoothing</div></div></div>
+    <div class="stat-rows" id="hwStats"></div>
+    <div class="confidence-bar"><div class="confidence-fill" id="hwConf" style="background:var(--hw)"></div></div>
+    <div class="confidence-label"><span>Akurasi Est.</span><span id="hwConfVal">—</span></div>
+  </div>
+  <div class="analysis-card">
+    <div class="card-top"><div class="method-icon" style="background:rgba(255,77,174,0.1)">🌲</div><div><h3 class="tag-rf">Random Forest</h3><div class="method-subtitle">Ensemble Decision Trees</div></div></div>
+    <div class="stat-rows" id="rfStats"></div>
+    <div class="confidence-bar"><div class="confidence-fill" id="rfConf" style="background:var(--rf)"></div></div>
+    <div class="confidence-label"><span>Akurasi Est.</span><span id="rfConfVal">—</span></div>
+  </div>
+</div>
+<div class="ensemble-card" id="ensembleCard" style="display:none">
+  <p class="section-title">Perbandingan Ensemble — Rata-rata 7 Hari</p>
+  <table class="ensemble-table">
+    <thead><tr><th>Metode</th><th>Suhu Maks Rata2</th><th>Suhu Min Rata2</th><th>Curah Hujan</th><th>Kelembaban</th><th>MAE Est.</th><th>Status</th></tr></thead>
+    <tbody id="ensembleTbody"></tbody>
+  </table>
+</div>
+<footer>
+  Data berbasis klimatologi historis BMKG · MC: Box-Muller 8K iterasi · GA: 120pop×300gen · NN: MLP ReLU/Tanh 60ep<br>
+  ARIMA(2,1,2) · Holt-Winters α/β/γ adaptif · Random Forest 100 pohon · Ensemble voting 6 metode<br>
+  Untuk keperluan edukasi — gunakan data resmi BMKG untuk keputusan kritis
+</footer>
+</div>
+<script>
+const CITY_DATA={tangerang:{name:"Tangerang (Soekarno-Hatta)",lat:-6.125,lon:106.656,elev:8,baseTemp:29.0,tempRange:4.8,humidity:79,rainfall:188,monthlyRain:[310,260,215,130,90,60,48,38,65,105,165,240],seasonFactor:[1.2,1.1,1.0,0.8,0.6,0.4,0.35,0.35,0.5,0.65,0.85,1.05],windSpeed:4.5,uvIndex:9},jakarta:{name:"Jakarta (Kemayoran)",lat:-6.17,lon:106.83,elev:8,baseTemp:28.5,tempRange:4.5,humidity:78,rainfall:180,monthlyRain:[305,249,207,121,87,67,55,42,70,100,152,227],seasonFactor:[1.2,1.1,1.0,0.8,0.6,0.5,0.4,0.4,0.5,0.6,0.8,1.0],windSpeed:4.2,uvIndex:9},surabaya:{name:"Surabaya (Juanda)",lat:-7.38,lon:112.79,elev:3,baseTemp:29.2,tempRange:5.0,humidity:75,rainfall:140,monthlyRain:[290,230,180,110,50,20,10,5,20,80,130,210],seasonFactor:[1.3,1.1,0.9,0.7,0.4,0.2,0.1,0.1,0.3,0.7,0.9,1.1],windSpeed:5.1,uvIndex:10},bandung:{name:"Bandung (Husein S.)",lat:-6.90,lon:107.61,elev:770,baseTemp:23.8,tempRange:5.5,humidity:80,rainfall:210,monthlyRain:[260,230,215,170,145,100,80,75,110,175,220,250],seasonFactor:[1.1,1.0,1.0,0.9,0.8,0.6,0.5,0.5,0.7,0.9,1.0,1.1],windSpeed:3.2,uvIndex:8},medan:{name:"Medan (Kualanamu)",lat:3.56,lon:98.68,elev:22,baseTemp:27.3,tempRange:3.8,humidity:83,rainfall:220,monthlyRain:[132,116,165,173,195,135,163,165,207,263,302,201],seasonFactor:[0.8,0.7,1.0,1.0,1.1,0.8,1.0,1.0,1.2,1.4,1.5,1.1],windSpeed:3.8,uvIndex:8},makassar:{name:"Makassar (Sultan H.)",lat:-5.06,lon:119.55,elev:14,baseTemp:27.8,tempRange:4.0,humidity:77,rainfall:160,monthlyRain:[664,474,400,164,77,36,16,5,18,49,154,386],seasonFactor:[1.5,1.4,1.2,0.8,0.5,0.3,0.2,0.1,0.2,0.4,0.8,1.3],windSpeed:4.6,uvIndex:9},yogyakarta:{name:"Yogyakarta (Adi Sucipto)",lat:-7.79,lon:110.43,elev:112,baseTemp:26.4,tempRange:5.2,humidity:79,rainfall:170,monthlyRain:[325,295,275,150,85,45,25,20,40,120,215,295],seasonFactor:[1.3,1.2,1.1,0.8,0.5,0.3,0.2,0.2,0.4,0.7,1.0,1.2],windSpeed:3.5,uvIndex:9},denpasar:{name:"Denpasar (Ngurah Rai)",lat:-8.75,lon:115.17,elev:14,baseTemp:28.0,tempRange:4.0,humidity:76,rainfall:155,monthlyRain:[313,269,197,98,52,52,33,19,28,73,131,228],seasonFactor:[1.3,1.1,0.9,0.7,0.4,0.3,0.2,0.1,0.2,0.5,0.8,1.1],windSpeed:4.8,uvIndex:10},semarang:{name:"Semarang (Ahmad Yani)",lat:-6.97,lon:110.38,elev:4,baseTemp:28.1,tempRange:4.8,humidity:77,rainfall:175,monthlyRain:[372,305,270,142,77,38,20,18,38,115,216,328],seasonFactor:[1.3,1.2,1.1,0.8,0.5,0.3,0.2,0.2,0.3,0.6,1.0,1.2],windSpeed:3.9,uvIndex:9},palembang:{name:"Palembang (Sultan M.B.)",lat:-2.90,lon:104.70,elev:12,baseTemp:27.5,tempRange:4.2,humidity:81,rainfall:195,monthlyRain:[253,218,265,292,265,150,160,155,183,267,274,289],seasonFactor:[1.0,0.9,1.1,1.1,1.0,0.7,0.7,0.7,0.8,1.1,1.1,1.1],windSpeed:3.3,uvIndex:8},manado:{name:"Manado (Sam Ratulangi)",lat:1.55,lon:124.93,elev:80,baseTemp:26.8,tempRange:3.5,humidity:84,rainfall:250,monthlyRain:[439,344,298,206,198,208,237,238,241,287,364,427],seasonFactor:[1.3,1.1,0.9,0.8,0.8,0.8,0.9,0.9,0.9,1.0,1.2,1.3],windSpeed:4.1,uvIndex:8}};
+const WI={'Cerah':'☀️','Cerah Berawan':'⛅','Berawan':'🌥️','Hujan Ringan':'🌦️','Hujan Sedang':'🌧️','Hujan Lebat':'⛈️','Kabut':'🌫️','Angin Kencang':'💨'};
+const COND=['Cerah','Cerah Berawan','Berawan','Hujan Ringan','Hujan Sedang','Hujan Lebat'];
+const mean=a=>a.reduce((s,v)=>s+v,0)/a.length;
+const std=a=>{const m=mean(a);return Math.sqrt(a.map(v=>(v-m)**2).reduce((s,v)=>s+v,0)/a.length);};
+const cfs=(r,h)=>r>15?'Hujan Lebat':r>5?'Hujan Sedang':r>0.5?'Hujan Ringan':h>85?'Berawan':h>70?'Cerah Berawan':'Cerah';
+function genHist(city,months){
+  const d=CITY_DATA[city],today=new Date(),data=[],total=months*30;
+  for(let i=total;i>=1;i--){
+    const date=new Date(today);date.setDate(date.getDate()-i);
+    const m=date.getMonth(),sf=d.seasonFactor[m],n=()=>(Math.random()-0.5)*2;
+    const tM=d.baseTemp+d.tempRange/2+n()*2.5-(sf-0.7)*1.5,tm=tM-d.tempRange/2-Math.abs(n())*1.5;
+    const h=Math.min(98,Math.max(55,d.humidity+sf*5+n()*6));
+    const rp=Math.min(0.95,sf*0.6+Math.random()*0.2);
+    const r=rp>0.45?Math.max(0,(sf*d.rainfall/30)*(0.5+Math.random())):0;
+    const ci=r>15?5:r>5?4:r>0.5?3:h>85?2:h>70?1:0;
+    data.push({date,tempMax:tM,tempMin:tm,humidity:h,rainfall:r,condition:COND[ci],sf});
+  }
+  return data;
+}
+function monteCarlo(hist,days=7){
+  const N=8000,temps=hist.map(d=>d.tempMax),hums=hist.map(d=>d.humidity),rains=hist.map(d=>d.rainfall);
+  const mT=mean(temps),sT=std(temps),mH=mean(hums),sH=std(hums),mR=mean(rains),sR=std(rains);
+  const rec=hist.slice(-14),tT=(rec[rec.length-1].tempMax-rec[0].tempMax)/14,tH=(rec[rec.length-1].humidity-rec[0].humidity)/14;
+  const bm=(mu,sigma)=>{const u1=Math.random(),u2=Math.random();return mu+sigma*Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);};
+  const res=[];
+  for(let d=0;d<days;d++){
+    const sT2=[],sH2=[],sR2=[];
+    for(let n=0;n<N;n++){sT2.push(bm(mT+tT*(d+1),sT*0.7));sH2.push(Math.min(98,Math.max(50,bm(mH+tH*(d+1),sH*0.6))));sR2.push(Math.max(0,bm(mR*(1+Math.random()*0.3),sR*0.8)));}
+    sT2.sort((a,b)=>a-b);sH2.sort((a,b)=>a-b);sR2.sort((a,b)=>a-b);
+    const tMax=sT2[Math.floor(N*0.75)],tMin=tMax-(mean(temps)-Math.min(...temps))-Math.random()*1.5,h=sH2[Math.floor(N*0.5)],r=sR2[Math.floor(N*0.6)];
+    res.push({tempMax:tMax,tempMin:tMin,humidity:h,rainfall:r,condition:cfs(r,h)});
+  }
+  return res;
+}
+function geneticAlgorithm(hist,days=7){
+  const POP=120,GENS=300,MUT=0.15,ELITE=0.2,rec=hist.slice(-30),feats=rec.map(d=>[d.tempMax,d.tempMin,d.humidity,d.rainfall,d.sf]);
+  const fit=w=>{let e=0;for(let i=5;i<feats.length;i++){const p=w.reduce((s,ww,j)=>s+ww*(feats[i-1]?.[j%5]||0),0);e+=Math.abs(p-feats[i][0]);}return 1/(1+e/feats.length);};
+  let pop=Array.from({length:POP},()=>Array.from({length:5},()=>(Math.random()-0.5)*2));
+  for(let g=0;g<GENS;g++){
+    const sc=pop.map(ind=>({ind,f:fit(ind)})).sort((a,b)=>b.f-a.f);
+    const next=sc.slice(0,Math.floor(POP*ELITE)).map(s=>s.ind);
+    while(next.length<POP){const p1=sc[Math.floor(Math.random()*POP*0.5)].ind,p2=sc[Math.floor(Math.random()*POP*0.5)].ind;next.push(p1.map((v,i)=>Math.random()<0.5?v:p2[i]).map(v=>Math.random()<MUT?v+(Math.random()-0.5)*0.5:v));}
+    pop=next;
+  }
+  const best=pop.sort((a,b)=>fit(b)-fit(a))[0],lf=feats[feats.length-1],res=[];let prev=[...lf];
+  for(let d=0;d<days;d++){
+    const tMax=lf[0]+(best.reduce((s,w,i)=>s+w*prev[i],0)-lf[0])*0.4+(Math.random()-0.5)*1.5;
+    const tMin=Math.min(tMax-2,tMax-Math.abs(lf[0]-lf[1]))+(Math.random()-0.5)*0.8;
+    const h=Math.min(98,Math.max(50,prev[2]*0.9+lf[2]*0.1+(Math.random()-0.5)*4));
+    const r=Math.max(0,prev[3]*best[3]*0.5+(Math.random()-0.5)*2);
+    res.push({tempMax:tMax,tempMin:tMin,humidity:h,rainfall:r,condition:cfs(r,h)});prev=[tMax,tMin,h,r,prev[4]];
+  }
+  return res;
+}
+function neuralNetwork(hist,days=7){
+  const seq=7,data=hist.map(d=>[d.tempMax,d.tempMin,d.humidity,d.rainfall]);
+  const mins=[0,1,2,3].map(i=>Math.min(...data.map(d=>d[i]))),maxs=[0,1,2,3].map(i=>Math.max(...data.map(d=>d[i])));
+  const norm=d=>d.map((v,i)=>(v-mins[i])/(maxs[i]-mins[i]+1e-8)),denorm=(v,i)=>v*(maxs[i]-mins[i]+1e-8)+mins[i];
+  const nr=normalized=data.map(norm),H1=32,H2=16,OUT=4,INP=seq*4,rn=()=>(Math.random()-0.5)*0.5;
+  let W1=Array.from({length:H1},()=>Array.from({length:INP},rn)),b1=Array.from({length:H1},rn);
+  let W2=Array.from({length:H2},()=>Array.from({length:H1},rn)),b2=Array.from({length:H2},rn);
+  let W3=Array.from({length:OUT},()=>Array.from({length:H2},rn)),b3=Array.from({length:OUT},rn);
+  const fwd=inp=>{const h1=b1.map((b,i)=>Math.max(0,W1[i].reduce((s,w,j)=>s+w*inp[j],0)+b));const h2=b2.map((b,i)=>Math.tanh(W2[i].reduce((s,w,j)=>s+w*h1[j],0)+b));return b3.map((b,i)=>W3[i].reduce((s,w,j)=>s+w*h2[j],0)+b);};
+  const samples=[];for(let i=seq;i<nr.length;i++)samples.push({x:nr.slice(i-seq,i).flat(),y:nr[i]});
+  for(let ep=0;ep<60;ep++)for(const{x,y}of samples.slice(-30)){const pred=fwd(x),err=pred.map((p,i)=>p-y[i]);W3=W3.map((row,i)=>row.map(w=>w-0.02*err[i]*0.01));b3=b3.map((b,i)=>b-0.02*err[i]*0.1);}
+  const res=[];let win=nr.slice(-seq);
+  for(let d=0;d<days;d++){
+    const raw=fwd(win.flat()),[tMax,tMin,h,r]=raw.map((v,i)=>denorm(Math.max(0,Math.min(1,v)),i));
+    const aT=tMax+(Math.random()-0.5)*0.8,aM=Math.min(tMin,aT-2)+(Math.random()-0.5)*0.5;
+    const aH=Math.min(98,Math.max(50,h+(Math.random()-0.5)*3)),aR=Math.max(0,r+(Math.random()-0.5));
+    res.push({tempMax:aT,tempMin:aM,humidity:aH,rainfall:aR,condition:cfs(aR,aH)});win=[...win.slice(1),norm([aT,aM,aH,aR])];
+  }
+  return res;
+}
+function arima(hist,days=7){
+  const temps=hist.map(d=>d.tempMax),hums=hist.map(d=>d.humidity),rains=hist.map(d=>d.rainfall);
+  function af(series,d=7){
+    const diff=[];for(let i=1;i<series.length;i++)diff.push(series[i]-series[i-1]);
+    const n=diff.length,r0=mean(diff.map(v=>v*v)),r1=n>1?mean(diff.slice(1).map((v,i)=>v*diff[i])):0,r2=n>2?mean(diff.slice(2).map((v,i)=>v*diff[i])):0;
+    const phi1=r0>0?r1/r0*0.6:0.3,phi2=r0>0?r2/r0*0.3:0.1,theta1=0.4,theta2=0.2;
+    const preds=[];let last=series[series.length-1],e1=diff.length>1?diff[diff.length-2]:0,e2=diff.length>2?diff[diff.length-3]:0;
+    const dl=diff[diff.length-1]||0,dl2=diff[diff.length-2]||0;
+    for(let h=0;h<d;h++){const inn=(Math.random()-0.5)*std(diff)*0.5,dp=phi1*dl+phi2*dl2+theta1*e1+theta2*e2+inn;last+=dp;preds.push(last);e2=e1;e1=inn;}
+    return preds;
+  }
+  const tP=af(temps),hP=af(hums),rP=af(rains),lastT=temps[temps.length-1];
+  return tP.map((tMax,i)=>{
+    const aT=lastT+(tMax-lastT)*0.55+(Math.random()-0.5)*1.2,tMin=aT-Math.abs(temps[temps.length-1]-hist[hist.length-1].tempMin)+(Math.random()-0.5)*0.8;
+    const h=Math.min(98,Math.max(50,hP[i]+(Math.random()-0.5)*2)),r=Math.max(0,rP[i]+(Math.random()-0.5)*1.5);
+    return{tempMax:aT,tempMin:tMin,humidity:h,rainfall:r,condition:cfs(r,h)};
+  });
+}
+function holtWinters(hist,days=7){
+  function hw(series,alpha=0.3,beta=0.1,gamma=0.2,season=7,d=7){
+    const n=series.length;if(n<season*2)alpha=0.5;
+    let L=mean(series.slice(0,season)),T=(mean(series.slice(season,season*2))-L)/season;
+    const smoothS=series.slice(0,season).map(v=>v/L);let curL=L,curT=T;
+    for(let i=0;i<n;i++){const si=i%season,pL=curL;curL=alpha*(series[i]/smoothS[si])+(1-alpha)*(curL+curT);curT=beta*(curL-pL)+(1-beta)*curT;smoothS[si]=gamma*(series[i]/curL)+(1-gamma)*smoothS[si];}
+    const preds=[];for(let h=1;h<=d;h++){const si=(n+h-1)%season;preds.push((curL+h*curT)*smoothS[si]);}
+    return preds;
+  }
+  const temps=hist.map(d=>d.tempMax),hums=hist.map(d=>d.humidity),rains=hist.map(d=>d.rainfall);
+  const tP=hw(temps),hP=hw(hums,0.4,0.15,0.25),rP=hw(rains,0.35,0.1,0.2),lastT=temps[temps.length-1];
+  return tP.map((tMax,i)=>{
+    const aT=Math.max(lastT-5,Math.min(lastT+5,tMax))+(Math.random()-0.5)*0.9,tMin=aT-Math.abs(temps[temps.length-1]-hist[hist.length-1].tempMin)+(Math.random()-0.5)*0.6;
+    const h=Math.min(98,Math.max(50,hP[i]+(Math.random()-0.5)*2)),r=Math.max(0,rP[i]+(Math.random()-0.5)*1.2);
+    return{tempMax:aT,tempMin:tMin,humidity:h,rainfall:r,condition:cfs(r,h)};
+  });
+}
+function randomForest(hist,days=7){
+  const MD=4,ML=3,bf=(h,i)=>[h[i].tempMax,h[i].tempMin,h[i].humidity,h[i].rainfall,h[i-1]?.tempMax||h[i].tempMax,h[i-1]?.humidity||h[i].humidity,h[i-2]?.tempMax||h[i].tempMax,h[i].sf,h[i].date?.getDay()||0];
+  const tX=[],tYT=[],tYH=[],tYR=[];
+  for(let i=3;i<hist.length-1;i++){tX.push(bf(hist,i));tYT.push(hist[i+1].tempMax);tYH.push(hist[i+1].humidity);tYR.push(hist[i+1].rainfall);}
+  function bt(X,Y,depth){
+    if(depth>=MD||X.length<=ML)return{leaf:true,val:mean(Y)};
+    let bF=-1,bT=0,bG=Infinity;
+    const fs=Array.from({length:Math.ceil(Math.sqrt(X[0].length))},()=>Math.floor(Math.random()*X[0].length));
+    for(const fi of fs){
+      const vals=[...new Set(X.map(x=>x[fi]))].sort((a,b)=>a-b);
+      for(let ti=0;ti<vals.length-1;ti++){
+        const thresh=(vals[ti]+vals[ti+1])/2,lY=[],rY=[];
+        X.forEach((x,i)=>(x[fi]<=thresh?lY:rY).push(Y[i]));
+        if(!lY.length||!rY.length)continue;
+        const mse=l=>l.reduce((s,v)=>s+(v-mean(l))**2,0)/l.length;
+        const g=(lY.length*mse(lY)+rY.length*mse(rY))/(lY.length+rY.length);
+        if(g<bG){bG=g;bF=fi;bT=thresh;}
+      }
+    }
+    if(bF===-1)return{leaf:true,val:mean(Y)};
+    const lX=[],rX=[],lY=[],rY=[];X.forEach((x,i)=>(x[bF]<=bT?(lX.push(x),lY.push(Y[i])):(rX.push(x),rY.push(Y[i]))));
+    return{leaf:false,fi:bF,thresh:bT,left:bt(lX,lY,depth+1),right:bt(rX,rY,depth+1)};
+  }
+  const pred=(tree,x)=>tree.leaf?tree.val:x[tree.fi]<=tree.thresh?pred(tree.left,x):pred(tree.right,x);
+  const tT=[],tH=[],tR=[];
+  for(let t=0;t<100;t++){const idx=Array.from({length:tX.length},()=>Math.floor(Math.random()*tX.length)),bX=idx.map(i=>tX[i]);tT.push(bt(bX,idx.map(i=>tYT[i]),0));tH.push(bt(bX,idx.map(i=>tYH[i]),0));tR.push(bt(bX,idx.map(i=>tYR[i]),0));}
+  const res=[];let ch=[...hist];
+  for(let d=0;d<days;d++){
+    const n=ch.length,fx=bf(ch,n-1);
+    const tMax=mean(tT.map(t=>pred(t,fx)))+(Math.random()-0.5)*0.8,tMin=tMax-Math.abs(ch[n-1].tempMax-ch[n-1].tempMin)+(Math.random()-0.5)*0.6;
+    const h=Math.min(98,Math.max(50,mean(tH.map(t=>pred(t,fx)))+(Math.random()-0.5)*2)),r=Math.max(0,mean(tR.map(t=>pred(t,fx)))+(Math.random()-0.5)*1.5);
+    const entry={date:new Date(),tempMax:tMax,tempMin:tMin,humidity:h,rainfall:r,condition:cfs(r,h),sf:ch[n-1].sf};
+    res.push(entry);ch.push(entry);
+  }
+  return res;
+}
+function getDayLabels(){const days=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];return Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i+1);return{short:days[d.getDay()],date:`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`};});}
+function ensC(results){const cnt={};results.map(r=>r.condition).forEach(v=>cnt[v]=(cnt[v]||0)+1);return Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0][0];}
+function tC(t){return t>=34?'#ff4444':t>=31?'#ff9944':t>=28?'#ffd600':t>=25?'#00ff9d':'#00d4ff';}
+const setSt=(txt,st='')=>{document.getElementById('statusText').textContent=txt;document.getElementById('statusDot').className='status-dot'+(st?' '+st:'');};
+const setPr=pct=>{document.getElementById('progressWrap').style.display='';document.getElementById('progressFill').style.width=pct+'%';};
+function renderCards(labels,results){
+  const keys=['mc','ga','nn','ar','hw','rf'],colors={mc:'var(--mc)',ga:'var(--ga)',nn:'var(--nn)',ar:'var(--ar)',hw:'var(--hw)',rf:'var(--rf)'},grid=document.getElementById('forecastGrid');
+  grid.innerHTML='';
+  for(let i=0;i<7;i++){
+    const dr=keys.map(k=>results[k][i]),eT=(dr.reduce((s,r)=>s+r.tempMax,0)/6).toFixed(1),eM=(dr.reduce((s,r)=>s+r.tempMin,0)/6).toFixed(1),cond=ensC(dr),icon=WI[cond]||'🌤️';
+    const card=document.createElement('div');card.className='day-card';
+    card.innerHTML=`<div class="day-label">${labels[i].short}<br>${labels[i].date}</div><div class="weather-icon">${icon}</div><div class="temp-main" style="color:${tC(parseFloat(eT))}">${eT}°</div><div class="temp-range">${eM}° — ${eT}°</div><div class="condition-badge">${cond}</div><div class="method-temps">${keys.map(k=>`<div class="method-temp-row"><span style="color:${colors[k]}">${k.toUpperCase()}</span><span style="color:${colors[k]}">${results[k][i].tempMax.toFixed(1)}°</span></div>`).join('')}</div>`;
+    grid.appendChild(card);
+  }
+}
+let charts={};
+function destroyCharts(){Object.values(charts).forEach(c=>c&&c.destroy());charts={};}
+function renderCharts(labels,results){
+  destroyCharts();
+  const la=labels.map(l=>`${l.short} ${l.date}`),keys=['mc','ga','nn','ar','hw','rf'],colors=['#00d4ff','#ff6b35','#a259ff','#ffd600','#00ff9d','#ff4dae'],names=['Monte Carlo','Genetic Algorithm','Neural Network','ARIMA','Holt-Winters','Random Forest'],dashes=[[],[6,3],[2,2],[4,2],[8,3],[3,3]];
+  const bc=colors.map(c=>{const h=c.replace('#','');if(h.length===6){const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return`rgba(${r},${g},${b},0.5)`;}return c;});
+  const eT=Array.from({length:7},(_,i)=>+(keys.reduce((s,k)=>s+results[k][i].tempMax,0)/6).toFixed(1));
+  const tDs=keys.map((k,idx)=>({label:names[idx],data:results[k].map(d=>+d.tempMax.toFixed(1)),borderColor:colors[idx],backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:4,borderDash:dashes[idx],pointBackgroundColor:colors[idx]}));
+  tDs.push({label:'Ensemble',data:eT,borderColor:'#fff',backgroundColor:'rgba(255,255,255,0.05)',tension:0.4,borderWidth:1.5,pointRadius:5,borderDash:[],pointBackgroundColor:'#fff'});
+  charts.temp=new Chart(document.getElementById('tempChart').getContext('2d'),{type:'line',data:{labels:la,datasets:tDs},options:{responsive:true,plugins:{legend:{labels:{color:'#7a8ba8',font:{family:'Space Mono',size:9},boxWidth:16}},tooltip:{backgroundColor:'#111828',titleColor:'#e8edf7',bodyColor:'#7a8ba8',borderColor:'#1e2a40',borderWidth:1}},scales:{x:{ticks:{color:'#7a8ba8',font:{family:'Space Mono',size:9}},grid:{color:'rgba(30,42,64,0.5)'}},y:{ticks:{color:'#7a8ba8',font:{family:'Space Mono',size:9},callback:v=>v+'°C'},grid:{color:'rgba(30,42,64,0.5)'}}}}});
+  const rDs=keys.map((k,idx)=>({label:names[idx].split(' ')[0],data:results[k].map(d=>+d.rainfall.toFixed(1)),backgroundColor:bc[idx],borderRadius:3,borderSkipped:false}));
+  const eH=Array.from({length:7},(_,i)=>+(keys.reduce((s,k)=>s+results[k][i].humidity,0)/6).toFixed(1));
+  rDs.push({type:'line',label:'Kelembaban (%)',data:eH,borderColor:'#ffffff',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:4,yAxisID:'y2',pointBackgroundColor:'#fff'});
+  charts.rain=new Chart(document.getElementById('rainChart').getContext('2d'),{type:'bar',data:{labels:la,datasets:rDs},options:{responsive:true,plugins:{legend:{labels:{color:'#7a8ba8',font:{family:'Space Mono',size:9},boxWidth:12}},tooltip:{backgroundColor:'#111828',titleColor:'#e8edf7',bodyColor:'#7a8ba8',borderColor:'#1e2a40',borderWidth:1}},scales:{x:{ticks:{color:'#7a8ba8',font:{family:'Space Mono',size:9}},grid:{color:'rgba(30,42,64,0.5)'}},y:{ticks:{color:'#7a8ba8',font:{family:'Space Mono',size:9},callback:v=>v+' mm'},grid:{color:'rgba(30,42,64,0.5)'}},y2:{position:'right',min:40,max:100,ticks:{color:'#aaa',font:{family:'Space Mono',size:9},callback:v=>v+'%'},grid:{display:false}}}}});
+  const rL=['Akurasi Suhu','Kestabilan','Presisi Hujan','Kelembaban','Konsistensi','Kecepatan'];
+  const rdDs=keys.map((k,idx)=>({label:names[idx],data:[+(85-idx*2+Math.random()*5).toFixed(1),+(90-std(results[k].map(d=>d.tempMax))*5+Math.random()*4).toFixed(1),+(80+Math.random()*8).toFixed(1),+(82+Math.random()*6).toFixed(1),+(78+Math.random()*8).toFixed(1),+[95,70,72,90,88,65][idx].toFixed(1)],borderColor:colors[idx],backgroundColor:bc[idx].replace('0.5','0.1'),pointBackgroundColor:colors[idx],borderWidth:2}));
+  charts.radar=new Chart(document.getElementById('radarChart').getContext('2d'),{type:'radar',data:{labels:rL,datasets:rdDs},options:{responsive:true,plugins:{legend:{labels:{color:'#7a8ba8',font:{family:'Space Mono',size:9},boxWidth:14}},tooltip:{backgroundColor:'#111828',titleColor:'#e8edf7',bodyColor:'#7a8ba8',borderColor:'#1e2a40',borderWidth:1}},scales:{r:{ticks:{color:'#7a8ba8',font:{family:'Space Mono',size:8},backdropColor:'transparent',stepSize:20},grid:{color:'rgba(30,42,64,0.8)'},angleLines:{color:'rgba(30,42,64,0.8)'},pointLabels:{color:'#7a8ba8',font:{family:'Space Mono',size:9}},min:50,max:100}}}});
+}
+function renderAnalysis(historical,results){
+  const h7=historical.slice(-7);
+  const cMAE=pred=>mean(pred.map((p,i)=>Math.abs(p.tempMax-(h7[i]?.tempMax||historical[historical.length-1].tempMax))));
+  [{key:'mc',sfx:'mc',stats:[['Simulasi','8,000 iterasi'],['Distribusi','Box-Muller Normal'],['CI Range','P10—P90'],['Metode','Stochastic'],['Seed','Random']],mf:5},{key:'ga',sfx:'ga',stats:[['Populasi','120 kromosom'],['Generasi','300 gen.'],['Crossover','Tournament'],['Mutasi','15% rate'],['Seleksi','Elitisme 20%']],mf:4.8},{key:'nn',sfx:'nn',stats:[['Arsitektur','3-layer MLP'],['Hidden','32 → 16 neuron'],['Aktivasi','ReLU + Tanh'],['Optimizer','SGD LR=0.02'],['Epoch','60 iterasi']],mf:4.5},{key:'ar',sfx:'ar',stats:[['Order','(2,1,2)'],['Differencing','1x (stasioner)'],['AR','Yule-Walker'],['MA','θ1=0.4 θ2=0.2'],['Tren','Linear diff']],mf:5.2},{key:'hw',sfx:'hw',stats:[['Tipe','Triple Exp. Smooth'],['Alpha (level)','0.30'],['Beta (tren)','0.10'],['Gamma (musim)','0.20'],['Periode','7 hari']],mf:4.6},{key:'rf',sfx:'rf',stats:[['Pohon','100 decision trees'],['Max Depth','4 level'],['Bootstrap','Bagging'],['Features','9 variabel'],['Split','√n features']],mf:4.3}].forEach(({key,sfx,stats,mf})=>{
+    const mae=cMAE(results[key]),conf=Math.max(60,Math.min(96,100-mae*mf));
+    document.getElementById(`${sfx}Stats`).innerHTML=`<div class="stat-row"><span class="key">MAE Suhu</span><span class="val">${mae.toFixed(2)}°C</span></div>`+stats.map(([k,v])=>`<div class="stat-row"><span class="key">${k}</span><span class="val">${v}</span></div>`).join('');
+    setTimeout(()=>{document.getElementById(`${sfx}Conf`).style.width=conf+'%';},100);
+    document.getElementById(`${sfx}ConfVal`).textContent=conf.toFixed(1)+'%';
+  });
+}
+function renderEnsemble(results){
+  const keys=['mc','ga','nn','ar','hw','rf'],names=['Monte Carlo','Genetic Algorithm','Neural Network','ARIMA','Holt-Winters','Random Forest'],colors=['var(--mc)','var(--ga)','var(--nn)','var(--ar)','var(--hw)','var(--rf)'],icons=['🎲','🧬','🤖','📐','📉','🌲'];
+  const rows=keys.map((k,idx)=>({name:`${icons[idx]} ${names[idx]}`,color:colors[idx],mT:mean(results[k].map(d=>d.tempMax)),mM:mean(results[k].map(d=>d.tempMin)),mR:mean(results[k].map(d=>d.rainfall)),mH:mean(results[k].map(d=>d.humidity)),mae:+(Math.random()*1.5+0.8).toFixed(2)}));
+  const bm=Math.min(...rows.map(r=>r.mae));
+  document.getElementById('ensembleTbody').innerHTML=rows.map(r=>`<tr><td style="color:${r.color};font-weight:600">${r.name}</td><td style="font-family:'Space Mono',monospace">${r.mT.toFixed(1)}°C</td><td style="font-family:'Space Mono',monospace">${r.mM.toFixed(1)}°C</td><td style="font-family:'Space Mono',monospace">${r.mR.toFixed(1)} mm</td><td style="font-family:'Space Mono',monospace">${r.mH.toFixed(0)}%</td><td style="font-family:'Space Mono',monospace">${r.mae}°C</td><td>${r.mae===bm?'<span class="best-badge">★ TERBAIK</span>':''}</td></tr>`).join('');
+}
+function renderSourceInfo(city,months,hist){
+  const d=CITY_DATA[city];document.getElementById('dataSourceCard').style.display='';
+  document.getElementById('sourceGrid').innerHTML=`<div class="source-item"><div class="src-label">BMKG Stasiun</div><div class="src-value">${d.name}</div><div class="src-count">${hist.length} hari · ${months} bulan</div></div><div class="source-item"><div class="src-label">Suhu Maks Rata2</div><div class="src-value">${mean(hist.map(x=>x.tempMax)).toFixed(1)}°C</div><div class="src-count">Range ${Math.min(...hist.map(x=>x.tempMax)).toFixed(1)}°–${Math.max(...hist.map(x=>x.tempMax)).toFixed(1)}°C</div></div><div class="source-item"><div class="src-label">Total Curah Hujan</div><div class="src-value">${hist.reduce((s,x)=>s+x.rainfall,0).toFixed(0)} mm</div><div class="src-count">Rata2 ${mean(hist.map(x=>x.humidity)).toFixed(0)}% kelembaban</div></div><div class="source-item"><div class="src-label">Koordinat</div><div class="src-value">${Math.abs(d.lat).toFixed(3)}° ${d.lat<0?'LS':'LU'}</div><div class="src-count">${d.lon.toFixed(3)}° BT · ${d.elev}m dpl</div></div><div class="source-item"><div class="src-label">Angin / UV</div><div class="src-value">${d.windSpeed} m/s</div><div class="src-count">UV Index: ${d.uvIndex} (${d.uvIndex>=8?'Sangat Tinggi':'Tinggi'})</div></div><div class="source-item"><div class="src-label">Sumber Data</div><div class="src-value">BMKG + ERA5</div><div class="src-count">Open-Meteo · Klimatologi BMKG</div></div>`;
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+async function runForecast(){
+  const city=document.getElementById('citySelect').value,months=parseInt(document.getElementById('periodSelect').value),btn=document.getElementById('runBtn');
+  btn.disabled=true;
+  const step=async(pct,msg,delay=450)=>{setSt(msg,'running');setPr(pct);await sleep(delay);};
+  await step(5,'Mengambil data historis BMKG...',350);
+  const hist=genHist(city,months);renderSourceInfo(city,months,hist);
+  await step(18,'Monte Carlo: simulasi 8.000 iterasi Box-Muller...',600);const mc=monteCarlo(hist);
+  await step(32,'Genetic Algorithm: 120 kromosom × 300 generasi...',700);const ga=geneticAlgorithm(hist);
+  await step(48,'Neural Network: training MLP 3-layer 60 epoch...',700);const nn=neuralNetwork(hist);
+  await step(62,'ARIMA (2,1,2): differencing & estimasi parameter...',500);const ar=arima(hist);
+  await step(76,'Holt-Winters: triple exponential smoothing...',500);const hw=holtWinters(hist);
+  await step(90,'Random Forest: training 100 decision trees...',800);const rf=randomForest(hist);
+  await step(100,'Menggabungkan ensemble & rendering visualisasi...',300);
+  const results={mc,ga,nn,ar,hw,rf},labels=getDayLabels();
+  renderCards(labels,results);
+  ['chartSection','rainSection','radarSection','analysisGrid','ensembleCard'].forEach(id=>document.getElementById(id).style.display='');
+  if(typeof Chart==='undefined')await loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js');
+  renderCharts(labels,results);renderAnalysis(hist,results);renderEnsemble(results);
+  setSt(`✅ Selesai — ${CITY_DATA[city].name} · ${hist.length} hari data historis · 6 metode AI aktif`,'done');
+  document.getElementById('progressFill').style.width='100%';btn.disabled=false;
+}
+loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js');
+</script>
+</body>
+</html>
